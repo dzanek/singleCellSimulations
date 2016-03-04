@@ -1,0 +1,106 @@
+import scipy.stats as ss
+import scipy.special as ssp
+import numpy as np
+import rf, wf
+import matplotlib.pylab as pl
+import random as r
+from drawGen import mrna_average,mrna_variance
+
+def genSyn(): # gives k_syn/min    
+	
+	'''
+	
+	k_syn = transcr / (27.5*(kon/koff) + 2.5)
+
+	'''
+
+	x = np.linspace(0,1000,10000)
+	y = ss.weibull_min.pdf(x,1.2,loc=0,scale=15)
+	cdf = []
+	for i in range(len(x)):
+		cdf.append([x[i],sum(y[:i])])
+	normer = max([i[1] for i in cdf])
+	cdf = [[i[1]/normer,i[0]] for i in cdf]
+	pl.plot([i[0] for i in cdf],[i[1] for i in cdf])
+	pl.savefig('cdfS.pdf')
+	return cdf
+def genDeg(): #gives k_deg /min 
+	'''
+	it's ok i think. reproduces good distribution
+	'''
+	x = np.linspace(0,0.45,10000)
+        y = ss.lognorm.pdf(x,0.49,loc=0.01,scale=0.06)
+        cdf = []
+        for i in range(len(x)):
+                cdf.append([x[i]/60,sum(y[:i])])
+        normer = cdf[-1][1]#max([i[1] for i in cdf])
+        cdf = [[i[1]/normer,i[0]] for i in cdf]
+	pl.cla()
+        pl.plot([i[0] for i in cdf],[i[1] for i in cdf])
+        pl.savefig('cdfD.pdf')
+        return cdf
+
+def genActiv():	
+#kon for koff==1: needs adjusting level of koff which will modify noise level :3 //will be sth 2(7)10 [lognormall]
+	'''
+	maybe split it into drawing kon and koff? Distributions seems to be easier to fit 
+	
+	HAV TO FIT EM ALL
+	'''
+	x = np.linspace(0,1.2,10000)
+        y = ss.weibull_max.pdf(x,2.8,loc=1.2,scale=0.6)
+        cdf = []
+        for i in range(len(x)):
+                cdf.append([x[i],sum(y[:i])])
+        normer = cdf[-1][1]#max([i[1] for i in cdf])
+        cdf = [[i[1]/normer,i[0]] for i in cdf]
+        pl.cla()
+        pl.plot([i[0] for i in cdf],[i[1] for i in cdf])
+        pl.savefig('cdfD.pdf')
+        return cdf
+
+
+if __name__ == '__main__':
+
+	'''
+	#make dicts from lists - {0-1, value}
+	ks = dict(genSyn())
+	kd = dict(genDeg())
+	kon = genActiv()
+	kon = dict(kon)
+	'''
+	params = []
+	
+	for i in range(22000):
+
+		nLvl = -2
+	#	lookfor = r.uniform(0,1)
+	#	goodKey = min(kon.keys(), key=lambda x:abs(x-lookfor))
+		k_on = ss.lognorm.rvs(1.3,scale=1.3)*20**(nLvl)	# kon[min(kon.keys(), key=lambda x:abs(x-r.uniform(0,1)))]
+		k_off = ss.lognorm.rvs(0.8,loc=1,scale=2.95)*20**(nLvl)
+		k_transcr = (ss.lognorm.rvs(0.95,loc=0,scale=1.6))*1 # was fitted
+		#k_syn = 1.4*ss.weibull_min.rvs(1.2,loc=0,scale=15) #ks[min(ks.keys(), key=lambda x:abs(x-r.uniform(0,1)))]
+		k_syn = k_transcr/(27.5*(k_on/k_off)+2.5)
+		k_deg = (ss.lognorm.rvs(0.49,loc=0.01,scale=0.06))/60 #kd[min(kd.keys(), key=lambda x:abs(x-r.uniform(0,1)))]
+		params.append([k_on,k_off,k_syn,k_deg,mrna_average(k_on,k_off,k_syn,k_deg),mrna_variance(k_on,k_off,k_syn,k_deg)/(mrna_average(k_on,k_off,k_syn,k_deg))**2,mrna_average(k_on,k_off,k_syn,k_deg/0.01),mrna_variance(k_on,k_off,k_syn,k_deg/0.01)/(mrna_average(k_on,k_off,k_syn,k_deg/0.01))**2])
+	print sum([i[4] for i in params])
+	pl.cla()
+	wf.writeFile('params_from_2809.pars',params)
+	pl.loglog([i[4] for i in params if i[4] != 0 and i[5] != 0 and i[4] < 10**2],[i[5] for i in params if i[4] != 0 and i[5] != 0 and i[4] < 10**2],'o',label='kdeg norm')
+	pl.loglog([i[6] for i in params if i[6] != 0 and i[7] != 0 and i[4] < 10**2],[i[7] for i in params if i[6] != 0 and i[7] != 0 and i[4] < 10**2],'o',label='kdeg / 10')
+	pl.legend(loc=3)
+#	pl.xlim(10**(-2),10**(5))
+#	pl.ylim(0.05,10**(2))
+	pl.savefig('distro.png')
+	pl.cla()
+	histogram = np.histogram([i[4] for i in params],100)
+	pl.plot(histogram[1][1:],histogram[0],'o')
+	pl.xscale('log')
+        pl.yscale('log')
+        pl.savefig('plz_be_zipf.pdf')
+
+
+
+
+
+

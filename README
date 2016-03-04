@@ -1,0 +1,20 @@
+1. genGenes.py is a script generating in silico cells. It generates plots with expr:CVsq distribution and zipf distribution of genes. It also generates file with parameters and expr:CVsq data for two kdeg values
+   runs without any command line parameters
+
+2. sinCellSim.py is a script for single cell simulations. It gives datafile with columns as following:
+	mean.simul.	CVsq.simul.	mean.calc.	CVsq.calc	kon	koff	ksyn	kdeg	single cell expression levels for rest of coluns
+   runs with command line parameters:
+	python sinCellSim.py param_file time cell_number model_you_use (obsolate, but arv counts it) output_name first_line_for_2k_lines_slice
+   i introduced slices for large simulations, as it's single core calculation, so producing series of genes independently will speed it up.
+
+3. pcr_noise.py is for pcr noise applying. 
+   runs with cmd params:
+	python pcr_noise.py expression_profile_file column_with_expression (count from 0)
+   for applying pcr noise to sinCellSim.py result better just import mkLib function with params as following: no. of fragments, efficiency, cycle number
+   zipf02.exp is a set i was working on while parametrizing model
+
+4. corrcoff.py is for corellation
+	python corrcoff.py output_from_sinCellSim log
+   it prints corr.coeff. both log (marked) and linear
+
+
